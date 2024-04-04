@@ -20,6 +20,7 @@ export default function Home() {
     const map = new Map({
       target: "map",
       controls: [],
+      keyboardEventTarget: document,
       layers: [
         new TileLayer({
           source: new OSM(),
@@ -86,6 +87,7 @@ export default function Home() {
       overlay.setPosition(undefined);
     });
   }, []);
+
   return (
     <div className={styles.container}>
       <div className={styles.map} id="map"></div>
