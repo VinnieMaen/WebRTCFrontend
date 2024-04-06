@@ -36,18 +36,28 @@ export default function Login() {
     workerInstance.postMessage(call);
     //@ts-expect-error typescript doesnt like webworkers for some reason
     workerInstance.onmessage = (res: {
-      data: { success: boolean; message: string };
+      data: {
+        success: boolean;
+        message: string;
+        data: { accessToken: string };
+      };
     }) => {
-      const data: { success: boolean; message: string } = res.data;
+      const data: {
+        success: boolean;
+        message: string;
+        data: { accessToken: string };
+      } = res.data;
       if (!data) return;
       const timeout = 3000 - Math.abs(start - Date.now()); // Replace this with your second timestamp
-      if (data.success)
+      if (data.success) {
+        sessionStorage.setItem("accessToken", data.data.accessToken);
         return setTimeout(() => {
           navigate("/");
           setLoading(false);
         }, timeout);
-      setLoading(false);
+      }
 
+      setLoading(false);
       alert(data.message);
     };
   };

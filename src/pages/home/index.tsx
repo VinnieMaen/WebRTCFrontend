@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import styles from "./styles.module.css";
 import Map from "ol/Map";
 import View from "ol/View";
@@ -12,11 +12,35 @@ import { Point } from "ol/geom";
 import Style from "ol/style/Style";
 import Icon from "ol/style/Icon";
 import { Overlay } from "ol";
+import { useBeforeunload } from "react-beforeunload";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const center = fromLonLat([3.717424, 51.05434]);
 
 export default function Home() {
+  const navigate = useNavigate();
+  const [accessToken, setAccessToken] = useState<string>();
+
+  useBeforeunload(
+    React.useCallback(async () => {
+      fetch("http://localhost/api/v1/calls/", {
+        method: "DELETE",
+        headers: {
+          "content-type": "application/json",
+          authorization: "Bearer " + accessToken,
+        },
+        keepalive: true,
+      });
+    }, [accessToken])
+  );
+
   useEffect(() => {
+    const token = sessionStorage.getItem("accessToken");
+
+    if (!token) return navigate("/login");
+    setAccessToken(token);
+
     const map = new Map({
       target: "map",
       controls: [],

@@ -21,9 +21,11 @@ export default () => {
         body: JSON.stringify(data),
       });
 
+      const json = await res.json();
       self.postMessage({
         success: res.ok,
-        message: (await res.json()).message,
+        message: json.message,
+        data: json.data,
       });
     })();
   }
