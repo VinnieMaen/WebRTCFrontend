@@ -14,7 +14,7 @@ const servers = {
   iceCandidatePoolSize: 10,
 };
 
-export let pc = new RTCPeerConnection(servers);
+export let pc: RTCPeerConnection = new RTCPeerConnection(servers);
 
 export async function generateCall(
   name: string,
@@ -46,24 +46,19 @@ export async function generateCall(
   };
 }
 
-export async function setupCandidateListener() {
-  socket.on(
-    "createConnection",
-    async (args: {
-      candidates: RTCIceCandidate[];
-      answer: RTCSessionDescriptionInit;
-    }) => {
-      await pc.setRemoteDescription(new RTCSessionDescription(args.answer));
+export async function connectToIncomingCall(args: {
+  candidates: RTCIceCandidate[];
+  answer: RTCSessionDescriptionInit;
+}) {
+  await pc.setRemoteDescription(new RTCSessionDescription(args.answer));
 
-      args.candidates?.forEach((candidate: RTCIceCandidate) => {
-        try {
-          pc.addIceCandidate(candidate);
-        } catch (error) {
-          console.log(error);
-        }
-      });
+  args.candidates?.forEach((candidate: RTCIceCandidate) => {
+    try {
+      pc.addIceCandidate(candidate);
+    } catch (error) {
+      console.log(error);
     }
-  );
+  });
 }
 
 export async function setupCall() {
@@ -95,6 +90,7 @@ export async function answerCall(
 
   const answerDescription = await pc.createAnswer();
   await pc.setLocalDescription(answerDescription);
+
   if (!candidates) {
     candidates = await new Promise<RTCIceCandidate[]>((resolve) => {
       const candidates: RTCIceCandidate[] = [];
@@ -139,7 +135,6 @@ export async function endCall(accessToken: string) {
     const candidates: RTCIceCandidate[] = [];
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        console.log(event.candidate);
         candidates.push(event.candidate);
       } else {
         resolve(candidates);
@@ -160,4 +155,6 @@ export async function endCall(accessToken: string) {
     },
     body: JSON.stringify({ sdp: offer, candidates }),
   });
+
+  return "OK";
 }

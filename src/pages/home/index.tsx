@@ -16,7 +16,13 @@ import { useBeforeunload } from "react-beforeunload";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { socket } from "../../lib/Socket";
-import { answerCall, endCall, localStream, remoteStream } from "../../lib/RTC";
+import {
+  answerCall,
+  connectToIncomingCall,
+  endCall,
+  localStream,
+  remoteStream,
+} from "../../lib/RTC";
 
 const center = fromLonLat([3.717424, 51.05434]);
 
@@ -24,6 +30,7 @@ export default function Home() {
   const navigate = useNavigate();
   const [accessToken, setAccessToken] = useState<string>();
   const [curUser, setCurUser] = useState<string>("");
+  const [inCall, setInCall] = useState<boolean>(false);
 
   const webcam: HTMLVideoElement = document.getElementById(
     "webcamVideo"
@@ -38,7 +45,20 @@ export default function Home() {
     remote.srcObject = remoteStream;
   }
 
+  const setStatus = async () => {
+    const status = prompt("Set your status!");
+    await fetch("http://localhost/api/v1/calls/status", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: "Bearer " + accessToken,
+      },
+      body: JSON.stringify({ status }),
+    });
+  };
+
   const handleCallClick = async (event: Event) => {
+    setInCall(true);
     const target = event.target as HTMLButtonElement;
     const calls = await getCalls();
     const call = calls.find(
@@ -47,21 +67,20 @@ export default function Home() {
     answerCall(call.sdpData, call.candidates, call._id);
   };
 
-  useBeforeunload(
-    React.useCallback(async () => {
-      fetch("http://localhost/api/v1/calls/", {
-        method: "DELETE",
-        headers: {
-          "content-type": "application/json",
-          authorization: "Bearer " + accessToken,
-        },
-        keepalive: true,
-      });
-      sessionStorage.removeItem("accessToken");
-      sessionStorage.removeItem("user");
-      sessionStorage.removeItem("userID");
-    }, [accessToken])
-  );
+  const logout = () => {
+    navigate("/login");
+    fetch("http://localhost/api/v1/calls/", {
+      method: "DELETE",
+      headers: {
+        "content-type": "application/json",
+        authorization: "Bearer " + accessToken,
+      },
+      keepalive: true,
+    });
+    sessionStorage.removeItem("accessToken");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("userID");
+  };
 
   const getCalls = async () => {
     const token = sessionStorage.getItem("accessToken");
@@ -115,6 +134,12 @@ export default function Home() {
     return layer;
   };
 
+  useBeforeunload(
+    React.useCallback(async () => {
+      logout();
+    }, [accessToken])
+  );
+
   useEffect(() => {
     (async () => {
       const token = sessionStorage.getItem("accessToken");
@@ -144,6 +169,17 @@ export default function Home() {
         const layer = addMarker(args);
         map.addLayer(layer);
       });
+
+      socket.on(
+        "createConnection",
+        async (args: {
+          candidates: RTCIceCandidate[];
+          answer: RTCSessionDescriptionInit;
+        }) => {
+          connectToIncomingCall(args);
+          setInCall(true);
+        }
+      );
 
       calls?.forEach(
         (item: {
@@ -215,8 +251,12 @@ export default function Home() {
         <h1>ChatRTC</h1>
         <h2>Welcome {curUser}</h2>
         <ul className={styles.menu}>
-          <li>Set Status</li>
-          <li>Logout</li>
+          <li>
+            <button onClick={setStatus}>Set Status</button>
+          </li>
+          <li>
+            <button onClick={logout}>Logout</button>
+          </li>
         </ul>
       </div>
       <video
@@ -226,15 +266,22 @@ export default function Home() {
         autoPlay
         playsInline
       ></video>
-      <button
-        onClick={() => {
-          if (!accessToken) return null;
-          endCall(accessToken);
-        }}
-        className={styles.endCallBtn}
-      >
-        End Call
-      </button>
+      {inCall ? (
+        <button
+          onClick={async () => {
+            if (!accessToken) return null;
+            await endCall(accessToken);
+            if (webcam && remote) {
+              webcam.srcObject = localStream;
+              remote.srcObject = remoteStream;
+            }
+            setInCall(false);
+          }}
+          className={styles.endCallBtn}
+        >
+          End Call
+        </button>
+      ) : null}
       <video
         className={styles.yourVideo}
         id="remoteVideo"

@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import WebWorker from "../../lib/WebWorker";
 import myWorker from "../../workers/callWorker.worker";
-import { generateCall, setupCall, setupCandidateListener } from "../../lib/RTC";
+import { generateCall, setupCall } from "../../lib/RTC";
 import { initSocket, socket } from "../../lib/Socket";
 import useGeoLocation from "../../hooks/useGeolocation";
 
@@ -66,8 +66,6 @@ export default function Login() {
         sessionStorage.setItem("userID", data.data.id);
 
         initSocket(data.data.id);
-
-        setupCandidateListener();
 
         return setTimeout(() => {
           socket.emit("newCallCreated", {
