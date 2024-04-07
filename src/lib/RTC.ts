@@ -1,5 +1,9 @@
-let localStream: MediaStream;
-let remoteStream: MediaStream;
+import { socket } from "./Socket";
+
+export let localStream: MediaStream;
+export let remoteStream: MediaStream;
+
+let candidates: RTCIceCandidate[];
 
 const servers = {
   iceServers: [
@@ -10,12 +14,15 @@ const servers = {
   iceCandidatePoolSize: 10,
 };
 
-export const pc = new RTCPeerConnection(servers);
+export let pc = new RTCPeerConnection(servers);
 
-export async function generateCall(name: string) {
+export async function generateCall(
+  name: string,
+  location: { lat: number | undefined; lon: number | undefined }
+) {
   const offerDescription = await pc.createOffer();
   await pc.setLocalDescription(offerDescription);
-  const candidates = await new Promise<RTCIceCandidate[]>((resolve) => {
+  candidates = await new Promise<RTCIceCandidate[]>((resolve) => {
     const candidates: RTCIceCandidate[] = [];
     pc.onicecandidate = (event) => {
       if (event.candidate) {
@@ -35,7 +42,28 @@ export async function generateCall(name: string) {
     sdpData: offer,
     candidates: JSON.stringify(candidates),
     name,
+    location,
   };
+}
+
+export async function setupCandidateListener() {
+  socket.on(
+    "createConnection",
+    async (args: {
+      candidates: RTCIceCandidate[];
+      answer: RTCSessionDescriptionInit;
+    }) => {
+      await pc.setRemoteDescription(new RTCSessionDescription(args.answer));
+
+      args.candidates?.forEach((candidate: RTCIceCandidate) => {
+        try {
+          pc.addIceCandidate(candidate);
+        } catch (error) {
+          console.log(error);
+        }
+      });
+    }
+  );
 }
 
 export async function setupCall() {
@@ -46,7 +74,6 @@ export async function setupCall() {
   remoteStream = new MediaStream();
 
   localStream.getTracks().forEach((track) => {
-    console.log(track);
     pc.addTrack(track, localStream);
   });
 
@@ -57,4 +84,80 @@ export async function setupCall() {
   };
 
   return { localStream, remoteStream };
+}
+
+export async function answerCall(
+  offer: string,
+  offerCandidates: RTCIceCandidate[],
+  id: string
+) {
+  await pc.setRemoteDescription(new RTCSessionDescription(JSON.parse(offer)));
+
+  const answerDescription = await pc.createAnswer();
+  await pc.setLocalDescription(answerDescription);
+  if (!candidates) {
+    candidates = await new Promise<RTCIceCandidate[]>((resolve) => {
+      const candidates: RTCIceCandidate[] = [];
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          candidates.push(event.candidate);
+        } else {
+          resolve(candidates);
+        }
+      };
+    });
+  }
+
+  offerCandidates?.forEach((candidate: RTCIceCandidate) => {
+    try {
+      pc.addIceCandidate(candidate);
+    } catch (error) {
+      console.log(error);
+    }
+  });
+
+  const answer = {
+    type: answerDescription.type,
+    sdp: answerDescription.sdp,
+  };
+
+  socket.emit("newConnection", { answer, candidates, id });
+}
+
+export async function endCall(accessToken: string) {
+  pc.close();
+  pc.onicecandidate = null;
+
+  pc = new RTCPeerConnection(servers);
+
+  await setupCall();
+
+  const offerDescription = await pc.createOffer();
+  await pc.setLocalDescription(offerDescription);
+
+  candidates = await new Promise<RTCIceCandidate[]>((resolve) => {
+    const candidates: RTCIceCandidate[] = [];
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        console.log(event.candidate);
+        candidates.push(event.candidate);
+      } else {
+        resolve(candidates);
+      }
+    };
+  });
+
+  const offer = {
+    sdp: offerDescription.sdp,
+    type: offerDescription.type,
+  };
+
+  await fetch("http://localhost/api/v1/calls/sdp", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: "Bearer " + accessToken,
+    },
+    body: JSON.stringify({ sdp: offer, candidates }),
+  });
 }

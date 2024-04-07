@@ -23,3 +23,7 @@ input {
 input::placeholder {
     color: #E5E5E5;
 }
+
+ul {
+    list-style-type: none;
+}
