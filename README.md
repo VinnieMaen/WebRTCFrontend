@@ -1,6 +1,9 @@
 # WebRTC Video Call with OpenLayers Map (Frontend)
 
-This React application utilizes Vite for bundling and Typescript for type safety to create a real-time video calling experience with user location visualization on an OpenLayers map.
+This React application utilizes Vite for bundling and Typescript for type safety to create a real-time video calling experience with user location visualization on an OpenLayers map. 
+
+## Disclaimer
+This is a fully working prototype and lacks some functionality. This project is just to illustrate the working of a couple different topics within web development!
 
 ## Features
 
@@ -21,18 +24,18 @@ This React application utilizes Vite for bundling and Typescript for type safety
    git clone git@github.com:VinnieMaen/WebRTCFrontend.git
    ```
 
-2. **Navigate to your project repository
+2. **Navigate to your project repository**
    ```bash
    cd <path-to-repo>
    ```
-3. **Install the required dependencies
+3. **Install the required dependencies**
    ```bash
    npm install
    ```
 
 ## Running the app
 
-1. **Start the webapp
+1. **Start the webapp**
    ```bash
    npm run dev
    ```
