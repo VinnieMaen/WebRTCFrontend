@@ -18,7 +18,7 @@ This React application utilizes Vite for bundling and Typescript for type safety
 1. **Clone this repository:**
 
    ```bash
-   git clone [https://github.com/](https://github.com/)<your-username>/<your-project-name>.git
+   git clone git@github.com:VinnieMaen/WebRTCFrontend.git
    ```
 
 2. **Navigate to your project repository
