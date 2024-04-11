@@ -19,3 +19,25 @@ This React application utilizes Vite for bundling and Typescript for type safety
 
    ```bash
    git clone [https://github.com/](https://github.com/)<your-username>/<your-project-name>.git
+   ```
+
+2. **Navigate to your project repository
+   ```bash
+   cd <path-to-repo>
+   ```
+3. **Install the required dependencies
+   ```bash
+   npm install
+   ```
+
+## Running the app
+
+1. **Start the webapp
+   ```bash
+   npm run dev
+   ```
+   
+   This will launch the application in development mode, usually accessible at http://localhost:5173/ in your web browser.
+
+## License
+This project is licensed under the MIT License (https://opensource.org/license/mit).
